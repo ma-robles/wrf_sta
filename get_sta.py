@@ -46,7 +46,7 @@ for var_name in data_vars:
     data_dic[var_name] = {'data_max': np.array ([]),
             'data_min': np.array ([]),
             'data_acc': np.array ([]),
-            'ndata': 0,
+            'ndata': [],
             }
 
 name_timevar = "Times"
@@ -101,7 +101,7 @@ while dt_pointer <= dt_end:
             except:
                 data_dic[ var_name ][ 'data_acc']= np.array([np.sum( values, axis=0 )])
 
-            data_dic[ var_name ][ 'ndata'] += values.shape[0]
+            data_dic[ var_name ][ 'ndata'].append( values.shape[0])
             print('values 0:', values.shape[0])
         size_time += 1
         dt_pointer += dt.timedelta(days=1)
@@ -212,6 +212,7 @@ with Dataset (outfile, 'w', format= "NETCDF4") as ofile:
         var = ofile.createVariable(
                 vname+ '_ndata',
                 'u4',
+                ("Time"),
                 )
         var.description = "cantidad de datos acumulados para " + vname
         var[:] = data_dic[vname]['ndata']
