@@ -209,4 +209,10 @@ with Dataset (outfile, 'w', format= "NETCDF4") as ofile:
             var.long_name = metadata[vname]['long_name'] + ' ' + stat.split('_')[1]
             var.description = var.long_name + ' del día'
             var[:] = data_dic[vname][stat]
+        var = ofile.createVariable(
+                vname+ '_ndata',
+                'u4',
+                )
+        var.description = "cantidad de datos acumulados para " + vname
+        var[:] = data_dic[vname]['ndata']
     
