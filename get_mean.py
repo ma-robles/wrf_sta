@@ -96,7 +96,6 @@ for año in range(start, end+1):
         print(months)
         for mes in range(1, 13):
             kmes =  months == mes
-            print("kmes", mes, kmes, kmes.all())
             if ( kmes.any() == False ):
                 print("Sin datos")
                 continue
@@ -107,33 +106,63 @@ for año in range(start, end+1):
                     post = stat_dic[stat]["itype"]
                     print('varst:', varst, k_data, post)
                     if (stat_dic[stat]["otype"] == "mean" ):
-                            if k_data in data_dic:
-                                data_dic[k_data] += np.sum(myfile[varst+"_" + post][kmes], axis=0)
+                        tmp_data = np.sum(myfile[varst+"_" + post][kmes], axis=0)
+                        print('acc:', myfile[varst+"_ndata"][kmes])
+                        print(myfile[varst+"_"+post][kmes].shape)
+                        print(myfile[varst+"_"+post][kmes][0])
+                        if k_data in data_dic:
+                            data_dic[k_data] += tmp_data
+                            if (stat_dic[stat]["itype"] == "acc" ):
                                 data_dic["ndata_"+ k_data] += np.sum(myfile[varst+"_ndata"][kmes], axis=0)
                             else:
-                                data_dic[k_data] = np.sum(myfile[varst+"_" + post][kmes], axis=0)
+                                data_dic["ndata_"+ k_data] += myfile[varst+"_ndata"][kmes].shape[0]
+                        else:
+                            data_dic[k_data] = tmp_data
+                            if (stat_dic[stat]["itype"] == "acc" ):
                                 data_dic["ndata_"+ k_data] = np.sum(myfile[varst+"_ndata"][kmes], axis=0)
-
+                            else:
+                                data_dic["ndata_"+ k_data] = myfile[varst+"_ndata"][kmes].shape[0]
                     elif (stat_dic[stat]["otype"] == "max" ):
-                            tmp_data = np.amax(myfile[varst+"_max"][kmes], axis=0)
-                            if k_data in data_dic:
-                                data_dic[k_data] = np.fmax(data_dic[k_data], tmp_data )
-                            else:
-                                data_dic[k_data] = tmp_data
-
+                        tmp_data = np.amax(myfile[varst+"_max"][kmes], axis=0)
+                        if k_data in data_dic:
+                            data_dic[k_data] = np.fmax(data_dic[k_data], tmp_data )
+                        else:
+                            data_dic[k_data] = tmp_data
                     elif (stat_dic[stat]["otype"] == "min" ):
-                            tmp_data = np.amin(myfile[varst+"_min"][kmes], axis=0)
-                            if k_data in data_dic:
-                                data_dic[k_data] = np.fmin(data_dic[k_data], tmp_data )
-                            else:
-                                data_dic[k_data] = tmp_data
+                        tmp_data = np.amin(myfile[varst+"_min"][kmes], axis=0)
+                        if k_data in data_dic:
+                            data_dic[k_data] = np.fmin(data_dic[k_data], tmp_data )
+                        else:
+                            data_dic[k_data] = tmp_data
 print('*'*40)
-print(data_dic)
+#exit(0)
 for varname in data_dic.keys():
     print(varname)
-    #print(data_dic[varname])
-        
+    if (varname[0:5] == "ndata"):
+        acc_name = varname[6:]
+        accdata = data_dic[acc_name]
+        print(accdata)
+        accdata /= data_dic[varname]
+        print(data_dic[varname])
+        print(accdata)
+print(data_dic)
 exit(0)
+for mes in range(1, 13):
+    for stat in stat_dic.keys():
+        print(stat)
+        for varst in stat_dic[stat]["vars"]:
+            k_data = stat_dic[stat]["abrv"]+varst+ '_'+ str(mes)
+            post = stat_dic[stat]["itype"]
+            print('varst:', varst, k_data, post)
+            if (stat_dic[stat]["otype"] == "mean" ):
+                    if k_data in data_dic:
+                        data_dic[k_data] += np.sum(myfile[varst+"_" + post][kmes], axis=0)
+                        data_dic["ndata_"+ k_data] += np.sum(myfile[varst+"_ndata"][kmes], axis=0)
+                    else:
+                        data_dic[k_data] = np.sum(myfile[varst+"_" + post][kmes], axis=0)
+                        data_dic["ndata_"+ k_data] = np.sum(myfile[varst+"_ndata"][kmes], axis=0)
+
+        
 
 for var_name in data_vars:
     data_dic[var_name] = {'data_max': np.array ([]),
