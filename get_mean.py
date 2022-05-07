@@ -83,6 +83,9 @@ for año in range(start, end+1):
         continue
     print("procesando", filename)
     with Dataset(filename, 'r') as myfile:
+        #obteniendo lat y lon
+        lat = myfile["latitude"][:]
+        lon = myfile["longitude"][:]
         #calcula pertenencia a meses
         base = myfile["Time"].units.split()
         base = base[2] + " " + base[3]
@@ -135,7 +138,7 @@ for año in range(start, end+1):
                         else:
                             data_dic[k_data] = tmp_data
 print('*'*40)
-#exit(0)
+#Dividiendo datos para calcular promedios
 for varname in data_dic.keys():
     print(varname)
     if (varname[0:5] == "ndata"):
@@ -145,88 +148,55 @@ for varname in data_dic.keys():
         accdata /= data_dic[varname]
         print(data_dic[varname])
         print(accdata)
-print(data_dic)
+#print(data_dic)
+#creacion de archivo de salida
+size_time = 12
+size_sn = len(lat)
+size_we = len(lon)
+
+outfile = "out_mes.nc"
+dt_start = dt.datetime(1979, 1, 1)
+with Dataset (outfile, 'w', format= "NETCDF4") as ofile:
+    ofile.createDimension("time", size_time)
+    ofile.createDimension("south_north", size_sn)
+    ofile.createDimension("west_east", size_we)
+    #tiempo
+    var = ofile.createVariable(
+            "time",
+            "u2",
+            ("time"),
+            )
+    var.units = dt_start.strftime("days since %Y-%m-%d")
+    var[:] = np.array(range(1,13))
+    #lat
+    var = ofile.createVariable(
+            "latitude",
+            "f8",
+            ("south_north"),
+            )
+    var.units = "degree_north"
+    var.standard_name = "latitude"
+    var[:] = lat
+    #lon
+    var = ofile.createVariable(
+            "longitude",
+            "f8",
+            ("west_east"),
+            )
+    var.units = "degree_east"
+    var.standard_name = "longitude"
+    var[:] = lon
+    for varname in data_dic.keys():
+        print(varname)
+        if (varname[0:5] == "ndata"):
+            continue
+        var = ofile.createVariable(
+            varname,
+            "f4",
+            ( "time", "south_north", "west_east" )
+            )
+        var[:] = data_dic[varname]
 exit(0)
-for mes in range(1, 13):
-    for stat in stat_dic.keys():
-        print(stat)
-        for varst in stat_dic[stat]["vars"]:
-            k_data = stat_dic[stat]["abrv"]+varst+ '_'+ str(mes)
-            post = stat_dic[stat]["itype"]
-            print('varst:', varst, k_data, post)
-            if (stat_dic[stat]["otype"] == "mean" ):
-                    if k_data in data_dic:
-                        data_dic[k_data] += np.sum(myfile[varst+"_" + post][kmes], axis=0)
-                        data_dic["ndata_"+ k_data] += np.sum(myfile[varst+"_ndata"][kmes], axis=0)
-                    else:
-                        data_dic[k_data] = np.sum(myfile[varst+"_" + post][kmes], axis=0)
-                        data_dic["ndata_"+ k_data] = np.sum(myfile[varst+"_ndata"][kmes], axis=0)
-
-        
-
-for var_name in data_vars:
-    data_dic[var_name] = {'data_max': np.array ([]),
-            'data_min': np.array ([]),
-            'data_acc': np.array ([]),
-            'ndata': 0,
-            }
-
-name_timevar = "Times"
-date_list = []
-while dt_pointer <= dt_end:
-    dayfile = root + dt_pointer.strftime(fmt_date)
-    try:
-        with Dataset (dayfile, 'r') as myfile:
-            print( dayfile)
-    except:
-        print('Archivo no encontrado', dayfile)
-        dt_pointer += dt.timedelta(days=1)
-        continue
-    with Dataset (dayfile, 'r') as myfile:
-        #Obteniendo la fecha
-        mytime = myfile[name_timevar][0,:]
-        mytime = (bytes(mytime).decode('utf-8'))
-        mytime = mytime.split('_')[0]
-        mytime = dt.datetime.strptime(mytime, "%Y-%m-%d")
-        date_list.append((mytime - dt_start).total_seconds()/3600)
-        for var_name in data_vars:
-            print(var_name)
-            if var_name == 'T2':
-                values = myfile[var_name][:, sn[0]: sn[1], we[0]: we[1]] - 273.15 
-            elif var_name == "WS":
-                U = myfile["U10"][:, sn[0]: sn[1], we[0]: we[1]]
-                V = myfile["V10"][:, sn[0]: sn[1], we[0]: we[1]]
-                values = np.sqrt(np.square(V) + np.square(U))
-                print('wind', values.shape,)
-
-            else:
-                values = myfile[var_name][:, sn[0]: sn[1], we[0]: we[1]]
-            try:
-                data_dic[ var_name ][ 'data_max']= np.append( data_dic[ var_name ][ 'data_max' ],
-                    [np.amax( values, axis=0 )],
-                    axis=0,
-                    )
-            except:
-                data_dic[ var_name ][ 'data_max']= np.array([np.amax( values, axis=0 )])
-            try:
-                data_dic[ var_name ][ 'data_min']= np.append( data_dic[ var_name ][ 'data_min' ],
-                    [np.amin( values, axis=0 )],
-                    axis=0,
-                    )
-            except:
-                data_dic[ var_name ][ 'data_min']= np.array([np.amin( values, axis=0 )])
-            try:
-                data_dic[ var_name ][ 'data_acc']= np.append( data_dic[ var_name ][ 'data_acc' ],
-                    [np.sum( values, axis=0 )],
-                    axis=0,
-                    )
-            except:
-                data_dic[ var_name ][ 'data_acc']= np.array([np.sum( values, axis=0 )])
-
-            data_dic[ var_name ][ 'ndata'] += values.shape[0]
-            print('values 0:', values.shape[0])
-        size_time += 1
-        dt_pointer += dt.timedelta(days=1)
 
 metadata = {}
 metadata['T2']={
@@ -283,41 +253,6 @@ axis_fname = "a1979/salidas/wrfout_c_anio_d01_1979-01-02_00:00:00.a1979"
 with Dataset (root + axis_fname, 'r') as axis_file:
     lat = axis_file["XLAT"][0,sn[0]:sn[1],0]
     lon = axis_file["XLONG"][0,0,we[0]:we[1]]
-    print(lat.shape, lat)
-    print(lon.shape, lon)
-
-#crea archivo de salida
-print("Escribiendo", outfile)
-with Dataset (outfile, 'w', format= "NETCDF4") as ofile:
-    s_time = ofile.createDimension("Time", size_time)
-    s_sn = ofile.createDimension("south_north", size_sn)
-    s_we = ofile.createDimension("west_east", size_we)
-    #tiempo
-    var = ofile.createVariable(
-            "Time",
-            "f8",
-            ("Time"),
-            )
-    var.units = dt_start.strftime("hours since %Y-%m-%d %H:%M:%S")
-    var[:] = date_list
-    #lat
-    var = ofile.createVariable(
-            "latitude",
-            "f8",
-            ("south_north"),
-            )
-    var.units = "degree_north"
-    var.standard_name = "latitude"
-    var[:] = lat
-    #lon
-    var = ofile.createVariable(
-            "longitude",
-            "f8",
-            ("west_east"),
-            )
-    var.units = "degree_east"
-    var.standard_name = "longitude"
-    var[:] = lon
     for vname in data_dic.keys():
         print(vname)
         for stat in ["data_max", "data_min", "data_acc",]:
