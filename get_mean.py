@@ -140,15 +140,28 @@ for año in range(start, end+1):
 print('*'*40)
 #Dividiendo datos para calcular promedios
 for varname in data_dic.keys():
-    print(varname)
     if (varname[0:5] == "ndata"):
         acc_name = varname[6:]
         accdata = data_dic[acc_name]
-        print(accdata)
         accdata /= data_dic[varname]
-        print(data_dic[varname])
-        print(accdata)
 #print(data_dic)
+#agrupando en arreglos 
+data_arr_dic= {}
+for varname in data_dic.keys():
+    if (varname[0:5] == "ndata"):
+        continue
+    elif (varname.split('_')[-1].isnumeric()):
+        new_name = varname[:varname.rindex('_')]
+        idx_mes = varname.split('_')[-1]
+        idx_mes = int(idx_mes)-1
+        print("numerica", new_name, idx_mes)
+        if (not new_name in data_arr_dic.keys()):
+            new_shape = (12, data_dic[varname].shape[0], data_dic[varname].shape[1])
+            print('new shape:', new_shape)
+            data_arr_dic[new_name] = np.zeros(new_shape)
+        data_arr_dic [new_name][idx_mes] = np.array([data_dic[varname]])
+for varname in data_arr_dic:
+    print('i', varname, data_arr_dic[varname].shape)
 #creacion de archivo de salida
 size_time = 12
 size_sn = len(lat)
@@ -167,7 +180,12 @@ with Dataset (outfile, 'w', format= "NETCDF4") as ofile:
             ("time"),
             )
     var.units = dt_start.strftime("days since %Y-%m-%d")
-    var[:] = np.array(range(1,13))
+    time_arr = []
+    for nmes in range(1,13):
+        dt_mes =  dt.datetime(dt_start.year, nmes, 15)
+        print(dt_mes)
+        time_arr.append((dt_mes-dt_start).total_seconds()/(3600*24))
+    var[:] = time_arr
     #lat
     var = ofile.createVariable(
             "latitude",
@@ -186,7 +204,7 @@ with Dataset (outfile, 'w', format= "NETCDF4") as ofile:
     var.units = "degree_east"
     var.standard_name = "longitude"
     var[:] = lon
-    for varname in data_dic.keys():
+    for varname in data_arr_dic.keys():
         print(varname)
         if (varname[0:5] == "ndata"):
             continue
@@ -195,7 +213,7 @@ with Dataset (outfile, 'w', format= "NETCDF4") as ofile:
             "f4",
             ( "time", "south_north", "west_east" )
             )
-        var[:] = data_dic[varname]
+        var[:] = data_arr_dic[varname]
 exit(0)
 
 metadata = {}
