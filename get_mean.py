@@ -17,14 +17,9 @@ import os.path
 start = int(sys.argv[1])
 end = int(sys.argv[2])
 root = sys.argv[3]
+root_out = sys.argv[4]
 fmt_date = "out_%Y.nc"
 outfile = sys.argv[4]+"clim.nc"
-mean_vars=(
-        "T2",
-        "WS",
-        "LH",
-        "HFX",
-        )
 mean_vars=(
         "T2",
         "WS",
@@ -167,7 +162,7 @@ size_time = 12
 size_sn = len(lat)
 size_we = len(lon)
 
-outfile = "out_mes.nc"
+outfile = root_out + "out_mes.nc"
 dt_start = dt.datetime(1979, 1, 1)
 with Dataset (outfile, 'w', format= "NETCDF4") as ofile:
     ofile.createDimension("time", size_time)
