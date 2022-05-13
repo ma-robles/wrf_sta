@@ -1,0 +1,7 @@
+{
+  "mean": ["T2", "WS", "LH", "HFX"],
+  "mmax": ["T2", "WS"],
+  "mmin": ["T2"],
+  "amax": ["T2", "WS"],
+  "amin": ["T2"]
+}

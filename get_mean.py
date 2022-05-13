@@ -9,71 +9,77 @@ argumentos:
 '''
 import sys
 from netCDF4 import Dataset
-from netCDF4 import date2index
 import numpy as np
 import datetime as dt
-import os.path
+import os.path as path
+import json
 
 start = int(sys.argv[1])
 end = int(sys.argv[2])
-root = sys.argv[3]
-root_out = sys.argv[4]
+root = path.normpath( sys.argv[3] )
+root_out = path.normpath( sys.argv[4] )
+if (path.exists(root)):
+    print("Ruta:", root)
+else:
+    print("La ruta no existe:", root)
+    exit(-1)
+if (path.exists(root_out)):
+    print("Ruta de salida:", root_out)
+else:
+    print("La ruta no existe:", root_out)
+    exit(-1)
 fmt_date = "out_%Y.nc"
 outfile = sys.argv[4]+"clim.nc"
-mean_vars=(
-        "T2",
-        "WS",
-        "LH",
-        "HFX",
-        )
-mmax_vars=(
-        "T2",
-        "WS",
-        )
-mmin_vars=(
-        "T2",
-        )
-amax_vars=(
-        "T2",
-        "WS",
-        )
-amin_vars=(
-        "T2",
-        )
+file_meta = "metadata.json"
+with open(file_meta) as md:
+    metadata = json.load(md)
+file_vars = "vars.json"
+with open( file_vars ) as fv:
+    all_vars= json.load(fv)
 stat_dic = {
         "mean":{"abrv" : "Mes_",
-            "vars" : mean_vars,
-            "itype": "acc",
+            "vars" : all_vars["mean"],
+            "iname" : "acc",
+            "itype": "mean",
             "otype": "mean",
+            "name": "climatologia mensual",
             },
         "mmax":{"abrv" : "MaxProm_Mes_",
-            "vars": mmax_vars,
-            "itype": "max",
+            "vars": all_vars["mmax"],
+            "iname": "max",
+            "itype": "maximum",
             "otype": "mean",
+            "name": "maxima promedio mensual",
             },
         "mmin":{"abrv" : "MinProm_Mes_",
-            "vars" : mmin_vars,
-            "itype": "min",
+            "vars" : all_vars["mmin"],
+            "iname": "min",
+            "itype": "minimum",
             "otype": "mean",
+            "name": "minima promedio mensual",
             },
         "amax":{"abrv" : "MaxAbs_Mes_",
-            "vars" : amax_vars,
-            "itype" : "max",
-            "otype": "max",
+            "vars" : all_vars["amax"],
+            "iname" : "max",
+            "itype" : "maximum",
+            "otype": "maximum",
+            "name": "maxima absoluta mensual",
             },
         "amin":{"abrv" : "MinAbs_Mes_",
-            "vars" : amin_vars,
-            "itype" : "min",
-            "otype": "min",
+            "vars" : all_vars["amin"],
+            "iname" : "min",
+            "itype" : "minimum",
+            "otype": "minimum",
+            "name": "minima absoluta mensual",
             },
         }
 data_dic = {}
 
 for año in range(start, end+1):
-    filename = root+ "out_{}.nc".format(año)
+    filename = path.join(root, "out_{}.nc".format(año))
     print('*'*40)
     print(año)
-    if (not os.path.exists(filename)):
+    if (not path.exists(filename)):
         print("No se encontró el archivo", filename)
         continue
     print("procesando", filename)
@@ -91,42 +97,36 @@ for año in range(start, end+1):
             date = base + dt.timedelta(hours=t)
             months.append( date.month)
         months = np.array(months)
-        print(months)
         for mes in range(1, 13):
             kmes =  months == mes
             if ( kmes.any() == False ):
                 print("Sin datos")
                 continue
             for stat in stat_dic.keys():
-                print(stat)
                 for varst in stat_dic[stat]["vars"]:
                     k_data = stat_dic[stat]["abrv"]+varst+ '_'+ str(mes)
-                    post = stat_dic[stat]["itype"]
-                    print('varst:', varst, k_data, post)
+                    post = stat_dic[stat]["iname"]
                     if (stat_dic[stat]["otype"] == "mean" ):
                         tmp_data = np.sum(myfile[varst+"_" + post][kmes], axis=0)
-                        print('acc:', myfile[varst+"_ndata"][kmes])
-                        print(myfile[varst+"_"+post][kmes].shape)
-                        print(myfile[varst+"_"+post][kmes][0])
                         if k_data in data_dic:
                             data_dic[k_data] += tmp_data
-                            if (stat_dic[stat]["itype"] == "acc" ):
+                            if (stat_dic[stat]["iname"] == "acc" ):
                                 data_dic["ndata_"+ k_data] += np.sum(myfile[varst+"_ndata"][kmes], axis=0)
                             else:
                                 data_dic["ndata_"+ k_data] += myfile[varst+"_ndata"][kmes].shape[0]
                         else:
                             data_dic[k_data] = tmp_data
-                            if (stat_dic[stat]["itype"] == "acc" ):
+                            if (stat_dic[stat]["iname"] == "acc" ):
                                 data_dic["ndata_"+ k_data] = np.sum(myfile[varst+"_ndata"][kmes], axis=0)
                             else:
                                 data_dic["ndata_"+ k_data] = myfile[varst+"_ndata"][kmes].shape[0]
-                    elif (stat_dic[stat]["otype"] == "max" ):
+                    elif (stat_dic[stat]["otype"] == "maximum" ):
                         tmp_data = np.amax(myfile[varst+"_max"][kmes], axis=0)
                         if k_data in data_dic:
                             data_dic[k_data] = np.fmax(data_dic[k_data], tmp_data )
                         else:
                             data_dic[k_data] = tmp_data
-                    elif (stat_dic[stat]["otype"] == "min" ):
+                    elif (stat_dic[stat]["otype"] == "minimum" ):
                         tmp_data = np.amin(myfile[varst+"_min"][kmes], axis=0)
                         if k_data in data_dic:
                             data_dic[k_data] = np.fmin(data_dic[k_data], tmp_data )
@@ -149,140 +149,91 @@ for varname in data_dic.keys():
         new_name = varname[:varname.rindex('_')]
         idx_mes = varname.split('_')[-1]
         idx_mes = int(idx_mes)-1
-        print("numerica", new_name, idx_mes)
         if (not new_name in data_arr_dic.keys()):
             new_shape = (12, data_dic[varname].shape[0], data_dic[varname].shape[1])
-            print('new shape:', new_shape)
             data_arr_dic[new_name] = np.zeros(new_shape)
+            
         data_arr_dic [new_name][idx_mes] = np.array([data_dic[varname]])
-for varname in data_arr_dic:
-    print('i', varname, data_arr_dic[varname].shape)
-#creacion de archivo de salida
+
+#creacion de archivos de salida
 size_time = 12
 size_sn = len(lat)
 size_we = len(lon)
 
-outfile = root_out + "out_mes.nc"
-dt_start = dt.datetime(1979, 1, 1)
-with Dataset (outfile, 'w', format= "NETCDF4") as ofile:
-    ofile.createDimension("time", size_time)
-    ofile.createDimension("south_north", size_sn)
-    ofile.createDimension("west_east", size_we)
-    #tiempo
-    var = ofile.createVariable(
-            "time",
-            "u2",
-            ("time"),
-            )
-    var.units = dt_start.strftime("days since %Y-%m-%d")
-    time_arr = []
-    for nmes in range(1,13):
-        dt_mes =  dt.datetime(dt_start.year, nmes, 15)
-        print(dt_mes)
-        time_arr.append((dt_mes-dt_start).total_seconds()/(3600*24))
-    var[:] = time_arr
-    #lat
-    var = ofile.createVariable(
-            "latitude",
-            "f8",
-            ("south_north"),
-            )
-    var.units = "degree_north"
-    var.standard_name = "latitude"
-    var[:] = lat
-    #lon
-    var = ofile.createVariable(
-            "longitude",
-            "f8",
-            ("west_east"),
-            )
-    var.units = "degree_east"
-    var.standard_name = "longitude"
-    var[:] = lon
-    for varname in data_arr_dic.keys():
-        print(varname)
-        if (varname[0:5] == "ndata"):
-            continue
+# Separando por estadístico
+for istat in stat_dic:
+    pre = stat_dic[istat]['abrv']
+    desc = stat_dic[istat]['name']
+    outfile = path.join(root_out, pre[:-1] + ".nc")
+    dt_start = dt.datetime(int(start), 1, 1)
+    dt_end= dt.datetime(int(end), 1, 1)
+    print(istat, "periodo:", start, end)
+    method1 = stat_dic[istat]["itype"] 
+    method2 = stat_dic[istat]["otype"] 
+    with Dataset (outfile, 'w', format= "NETCDF4") as ofile:
+        ofile.createDimension("time", size_time)
+        ofile.createDimension("south_north", size_sn)
+        ofile.createDimension("west_east", size_we)
+        ofile.createDimension("nv", 2)
+        #tiempo
         var = ofile.createVariable(
-            varname,
-            "f4",
-            ( "time", "south_north", "west_east" )
-            )
-        var[:] = data_arr_dic[varname]
-exit(0)
-
-metadata = {}
-metadata['T2']={
-         'units':'C',
-         'standard_name':'Air temperature',
-         'long_name':'Air temperature',
-         'description': ' Air Temperature at 2 m',
-         'dtype':"f4",
-         }
-metadata['WS']={
-         'units':'m s-1',
-         'standard_name':'wind',
-         'long_name':'wind',
-         'description': 'wind',
-         'dtype':"f4",
-         }
-metadata['SWDOWN']={
-         'units':'u',
-         'standard_name':'Rad',
-         'long_name':'Rad',
-         'description': 'Rad',
-         'dtype':"f4",
-         }
-metadata['GLW']={
-         'units':'u',
-         'standard_name':'rad',
-         'long_name':'rad',
-         'description': 'rad',
-         'dtype':"f4",
-         }
-metadata['QFX']={
-         'units':'u',
-         'standard_name':'eva',
-         'long_name':'eva',
-         'description': 'eva',
-         'dtype':"f4",
-         }
-metadata['LH']={
-         'units':'w m-2',
-         'standard_name':'',
-         'long_name':'Calor latente en la superficie',
-         'description': '',
-         'dtype':"f4",
-         }
-metadata['HFX']={
-         'units':'w m-2',
-         'standard_name':'',
-         'long_name':'Calor sensible',
-         'description': '',
-         'dtype':"f4",
-         }
-
-axis_fname = "a1979/salidas/wrfout_c_anio_d01_1979-01-02_00:00:00.a1979"
-with Dataset (root + axis_fname, 'r') as axis_file:
-    lat = axis_file["XLAT"][0,sn[0]:sn[1],0]
-    lon = axis_file["XLONG"][0,0,we[0]:we[1]]
-    for vname in data_dic.keys():
-        print(vname)
-        for stat in ["data_max", "data_min", "data_acc",]:
-            var = ofile.createVariable(
-                    vname+'_'+stat.split('_')[1],
-                    metadata[vname]['dtype'],
-                    ("Time", "south_north", "west_east"),
-                    )
-            var.units = metadata[vname]['units']
-            #var.standard_name = metadata[vname]['standard_name']
-            var.long_name = metadata[vname]['long_name'] + ' ' + stat.split('_')[1]
-            var.description = var.long_name + ' del día'
-            var[:] = data_dic[vname][stat]
-        var = ofile.createVariable(
-                vname+ '_ndata',
-                'u4',
+                "time",
+                "u2",
+                ("time"),
                 )
-        var.description = "cantidad de datos acumulados para " + vname
-        var[:] = data_dic[vname]['ndata']
-    
+        var.units = dt_start.strftime("days since %Y-%m-%d")
+        var.climatology  = "climatology_bounds"
+        time_arr = []
+        for nmes in range(1,13):
+            dt_mes =  dt.datetime(dt_start.year, nmes, 15)
+            time_arr.append((dt_mes-dt_start).total_seconds()/(3600*24))
+        var[:] = time_arr
+        var = ofile.createVariable(
+                "climatology_bounds",
+                "u2",
+                ("time", "nv"),
+                )
+        time_arr = np.zeros((size_time,2), dtype=np.int16)
+        for nmes in range(1,13):
+            dt_mes = [dt.datetime( start, nmes, 1)]
+            if nmes == 12:
+                dt_mes.append( dt.datetime( end+1, 1, 1) - dt.timedelta(days=1))
+            else:
+                dt_mes.append( dt.datetime( end, nmes+1, 1) - dt.timedelta(days=1))
+            dt_mes[0]= (dt_mes[0]-dt_start).total_seconds()/(3600*24)
+            dt_mes[1]= (dt_mes[1]-dt_start).total_seconds()/(3600*24)
+            time_arr[nmes-1] = dt_mes
+        var[:] = time_arr
+        #lat
+        var = ofile.createVariable(
+                "latitude",
+                "f8",
+                ("south_north"),
+                )
+        var.units = "degree_north"
+        var.standard_name = "latitude"
+        var[:] = lat
+        #lon
+        var = ofile.createVariable(
+                "longitude",
+                "f8",
+                ("west_east"),
+                )
+        var.units = "degree_east"
+        var.standard_name = "longitude"
+        var[:] = lon
+        for vname in stat_dic[istat]['vars']:
+            varname = pre + vname
+            print (outfile, vname, varname)
+            var = ofile.createVariable(
+                vname,
+                "f4",
+                ( "time", "south_north", "west_east" )
+                )
+            var[:] = data_arr_dic[varname]
+            if vname in metadata:
+                var.long_name = metadata[vname]["long_name"] + ', ' + desc
+                for atribs in metadata[vname]["atribs"]:
+                    var.setncattr( atribs , metadata[vname]["atribs"][atribs] )
+                var.cell_methods = "time: " + method1 + " within years "
+                var.cell_methods += "time: " + method2 + " over years"
