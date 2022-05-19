@@ -183,6 +183,7 @@ for istat in stat_dic:
                 )
         var.units = dt_start.strftime("days since %Y-%m-%d")
         var.climatology  = "climatology_bounds"
+        var.axis = "T"
         time_arr = []
         for nmes in range(1,13):
             dt_mes =  dt.datetime(dt_start.year, nmes, 15)
@@ -212,6 +213,7 @@ for istat in stat_dic:
                 )
         var.units = "degree_north"
         var.standard_name = "latitude"
+        var.axis = "Y"
         var[:] = lat
         #lon
         var = ofile.createVariable(
@@ -221,6 +223,7 @@ for istat in stat_dic:
                 )
         var.units = "degree_east"
         var.standard_name = "longitude"
+        var.axis = "X"
         var[:] = lon
         for vname in stat_dic[istat]['vars']:
             varname = pre + vname
