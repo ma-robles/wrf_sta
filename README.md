@@ -1,11 +1,11 @@
 # wrf_sta
 Generación de estadísticos de salidas WRF
 
-Se compone de 2 scripts: get_mean.py y get_sta.py
+Se compone de 2 scripts: get_sta.py y calc_m.py
 El primero procesa las salidas del WRF para obtener estadísticos diarios (máximos, mínimos y acumulados).
 El segundo script, procesa las salidas del primero para calcular estadísticos por mes, así como agregar información 
 
-## get_mean.py
+## get_sta.py
 Procesa todas las variables encontradas en las salidas. 
 Recibe como parámetros de entrada, la carpeta donde se encuentran los archivos y el año que se debe procesar.
 
@@ -25,7 +25,7 @@ Genera archivo con los datos del año procesado.
 El formato del nombre de los archivos es: out_[year].nc,
 donde [year] es el año que se procesó.
 
-## get_sta.py
+## calc_m.py
 Procesa los archivos anuales generados por get_mean.py.
 Asume que el nombre de los archivos tienen la sintaxis: out_[year].nc
 Genera un archivo para cada tipo de estadístico.
