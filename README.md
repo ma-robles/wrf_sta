@@ -36,3 +36,4 @@ Se utiliza un archivo JSON para configurar el nombre de las variables así como 
 Partiendo del archivo de configuración se generan arreglos de promedios mensuales.
 
 metadata.json se utiliza para obtener los nombres de las variables y los parámetros que debe contener cada una de ellas.
+
