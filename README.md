@@ -37,3 +37,14 @@ Partiendo del archivo de configuración se generan arreglos de promedios mensual
 
 metadata.json se utiliza para obtener los nombres de las variables y los parámetros que debe contener cada una de ellas.
 
+## concat_atr.py
+
+Agrega los atributos generales a los archivos netCDF. Requiere un archivo .csv donde se especifican el nombre de los tributos y su valor.
+También modifica el atributo date_metadata_modified con la fecha actual.
+
+### Sintaxis
+
+python concat_atr.py archivo.nc archivo.csv
+
+archivo.nc es el archivo netCDF al que se le agregarán los atributos generales.
+archivo.csv el el archivo CSV donde se encuentra la información de los atributos a utilizar.
