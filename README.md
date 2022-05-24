@@ -1,15 +1,13 @@
 # wrf_sta
 Generación de estadísticos de salidas WRF
 
-Se compone de 2 scripts: get_sta.py y calc_m.py
-El primero procesa las salidas del WRF para obtener estadísticos diarios (máximos, mínimos y acumulados).
-El segundo script, procesa las salidas del primero para calcular estadísticos por mes, así como agregar información 
+Se compone de varios scripts de procesamiento
 
 ## get_sta.py
 Procesa todas las variables encontradas en las salidas. 
 Recibe como parámetros de entrada, la carpeta donde se encuentran los archivos y el año que se debe procesar.
 
-###Sintaxis
+### Sintaxis
 python get_sta.py PATH YEAR
 
 PATH ruta donde se encuentra la carpeta con los archivos a procesar
